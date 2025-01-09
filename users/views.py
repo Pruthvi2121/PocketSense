@@ -17,6 +17,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from secrets import token_urlsafe
 from django.conf import settings
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
+from django.db.models import Q
 
 logger = logging.getLogger(__name__)
 
@@ -392,3 +393,24 @@ class ResetPasswordView(APIView):
         except Exception as ex:
             logger.info("Something went wrong", exc_info=ex)
             raise APIException(detail=ex)
+
+
+
+class UserListAPIView(APIView):
+  
+    
+    def get(self, request, *args, **kwargs):
+        search_query = request.GET.get('q', None)
+        users = User.objects.all()
+
+        if search_query:
+            users = users.filter(
+                Q(email__icontains=search_query) | 
+                Q(first_name__icontains=search_query) | 
+                Q(last_name__icontains=search_query) 
+               
+            )
+        
+        serializer = UserSerializer(users, many=True)
+     
+        return Response({"results":serializer.data},status=status.HTTP_200_OK)

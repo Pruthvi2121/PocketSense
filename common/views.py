@@ -63,7 +63,7 @@ class BaseViewSet(ModelViewSet):
             self.perform_create(serializer)
             headers = self.get_success_headers(serializer.data)
             return Response(
-                {"detail": "Successfully Created!", "data": serializer.data},
+                {"detail": "Successfully Created!", "results": serializer.data},
                 status=status.HTTP_201_CREATED,
                 headers=headers,
             )

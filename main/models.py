@@ -23,9 +23,18 @@ class Expense(BaseModel):
         return f"{self.user.first_name} {self.category} {self.amount}/-"
 
 
-# class Group(BaseModel):
-#     name = models.CharField(max_length=100)
-#     admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name="admin_groups")
+class Group(BaseModel):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name="admin_groups")
+    members = models.ManyToManyField(User, related_name="member_groups", blank=True)
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        if self.admin not in self.members.all():
+            self.members.add(self.admin)
   
 
 # class GroupMember(BaseModel):
