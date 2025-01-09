@@ -1,6 +1,6 @@
 # myapp/urls.py
 from django.urls import path
-from .views import LoginView, SignUpView, UserProfileAPIView, LogoutAPIView
+from .views import LoginView, SignUpView, ProfileAPIView, LogoutAPIView, ForgotPasswordView, ResetPasswordView
 
 #  ProductAPIView, CustomerAPIView, OrderAPIView
 
@@ -16,9 +16,9 @@ urlpatterns = [
     path('token/', TokenObtainPairView.as_view()),
     path('token/refresh/', TokenRefreshView.as_view()),
     path('logout/', LogoutAPIView.as_view()), 
-    path('profile/', UserProfileAPIView.as_view()),
-
-  
+    path('profile/', ProfileAPIView.as_view()),
+    path('forgot_password/', ForgotPasswordView.as_view()),
+    path('reset_password/', ResetPasswordView.as_view()),
 ]
 
 

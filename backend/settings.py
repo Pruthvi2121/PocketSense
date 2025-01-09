@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 from pathlib import Path
 from decouple import config
 from datetime import timedelta
-
+import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -62,7 +63,7 @@ ROOT_URLCONF = 'backend.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS':  [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -124,6 +125,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'staticfiles'),
+]
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
@@ -150,8 +156,11 @@ CORS_ALLOW_CREDENTIALS = True
 
 # myproject/settings.py
 REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ],
     
 }
@@ -164,3 +173,36 @@ SIMPLE_JWT = {
 
 
 AUTH_USER_MODEL = 'users.User'
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = config("EMAIL_HOST_USER")
+
+BASE_FRONTEND_URL = config('BASE_FRONTEND_URL', default='http://localhost:5173')
+
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Pocket Sense API',
+    'DESCRIPTION': 'Documentation of API endpoints of Pocket Sense',
+    'VERSION': '1.0.0',
+    'POSTPROCESSING_HOOKS': [
+        'backend.schema_hooks.flatten_paths',
+        'backend.schema_hooks.flatten_id_folders',
+        'backend.schema_hooks.clean_operation_ids',
+        'backend.schema_hooks.remove_security_for_public_api', 
+        ]
+      ,
+    # 'SERVE_PERMISSIONS': ['rest_framework.permissions.IsAdminUser'],
+    'COMPONENT_SPLIT_REQUEST': True,
+    'DEFAULT_API_CONSUMES': ['application/json', 'multipart/form-data'],
+    'DEFAULT_API_PRODUCES': ['application/json']
+}
