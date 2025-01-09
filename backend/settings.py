@@ -40,6 +40,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'users',
+    'main',
+
+    # External apps
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
