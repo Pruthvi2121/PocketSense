@@ -26,7 +26,6 @@ class ExpenseViewSet(BaseViewSet):
 
 
 
-
 class GroupViewSet(BaseViewSet):
     serializer_class = GroupSerializer
     queryset = Group.objects.all()
@@ -127,25 +126,7 @@ class GroupViewSet(BaseViewSet):
                 
     
 
-    @action(detail=True, methods=["get"])
-    def calculate_contributions(self, request, pk=None):
-        """
-        Calculate contributions or refunds for a group.
-        """
-        group = self.get_object()
-        contributions = group.calculate_contributions()
-        if not contributions:
-            return Response({"detail": "No contributions to calculate."}, status=status.HTTP_400_BAD_REQUEST)
-
-        data = []
-        for contribution in contributions:
-            data.append({
-                "member": contribution["member"].id,
-                "amount": contribution["amount"],
-                "type": contribution["type"],
-            })
-        return Response({"results":data}, status=status.HTTP_200_OK)
-    
+   
 
     @action(detail=True, methods=["post"])
     def share_contribution_amount(self, request, pk=None):
@@ -221,6 +202,8 @@ class GroupViewSet(BaseViewSet):
         except Exception as e:
             return Response({"detail": "Something went wrong"}, status=status.HTTP_404_NOT_FOUND)
         
+
+
     @action(detail=True, methods=["post"])
     def finalize_session(self, request, pk=None):
         group = self.get_object()
@@ -297,6 +280,9 @@ class GroupViewSet(BaseViewSet):
             status=status.HTTP_200_OK,
         )
     
+
+
+    
     @action(detail=True, methods=["put"])
     def pay_refund(self, request, pk=None):
         try:
@@ -324,6 +310,8 @@ class GroupViewSet(BaseViewSet):
             return Response({"detail": "Refund contribution not found."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+
         
     @action(detail=True, methods=["put"])
     def verify_refund(self, request, pk=None):
