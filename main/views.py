@@ -10,6 +10,7 @@ from rest_framework import status
 from common.functions import serailizer_errors
 from rest_framework.exceptions import ValidationError,  APIException
 from django.db import transaction
+from decimal import Decimal
 # Create your views here.
 
 import logging
@@ -220,3 +221,84 @@ class GroupViewSet(BaseViewSet):
         except Exception as e:
             return Response({"detail": "Something went wrong"}, status=status.HTTP_404_NOT_FOUND)
         
+    @action(detail=True, methods=["post"])
+    def finalize_session(self, request, pk=None):
+        group = self.get_object()
+        members = group.members.all()
+
+        if not members.exists():
+            return Response({"detail": "Group has no members."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        total_expenses = sum(expense.amount for expense in group.expenses.all())
+        group.actual_amount = total_expenses
+        group.save()
+
+
+        member_expenses = {
+        expense["created_by"]: expense["total"]
+        for expense in group.expenses.values("created_by").annotate(total=Sum("amount"))
+    }
+
+        # need additional amount from members
+        if total_expenses > group.estimated_amount:
+            additional_amount = (total_expenses - group.estimated_amount) / len(members)
+            
+            for member in members:
+                unpaid_contribution = GroupContribution.objects.filter(group=group, contribution_type="initial", member=member, is_paid=False).aggregate(
+                    total_unpaid=Decimal('0')
+                )["total_unpaid"] or Decimal("0.00")
+
+                 # Calculate total expenses created by the member
+                member_total_expenses = GroupExpense.objects.filter(
+                    group=group, created_by=member
+                ).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+                    
+                additional_amount =( extra_amount + unpaid_contribution ) - member_total_expenses
+
+               
+               
+                if additional_amount < 0:
+                    # Create a refund contribution for the member
+                    contribution = GroupContribution.objects.create(
+                        group=group,
+                        member=member,
+                        amount=abs(additional_amount),
+                        contribution_type="refund",
+                    )
+                else:
+                    # Create an additional contribution for the member
+                    contribution = GroupContribution.objects.create(
+                        group=group,
+                        member=member,
+                        amount=additional_amount,
+                        contribution_type="additional",
+                    )
+
+
+        # need to refund to members
+        elif total_expenses < group.estimated_amount:
+            # Refund amount
+            refund_amount = (group.estimated_amount - total_expenses) / len(members) - Ex
+            for member in members:
+
+                unpaid_contribution = GroupContribution.objects.filter(group=group, member=member, is_paid=False).aggregate(
+                    total_unpaid=Decimal('0')
+                )["total_unpaid"] or Decimal("0.00")
+
+                net_refund = max(refund_amount - unpaid_contribution, 0)
+
+                contribution = GroupContribution.objects.create(
+                    group=group,
+                    member=member,
+                    amount=net_refund,
+                    contribution_type="refund",
+                )
+               
+           
+        return Response(
+            {
+                "detail": "Session finalized. Contributions and refunds processed.",
+                "contributions": GroupContributionSerializer(contributions, many=True).data,
+            },
+            status=status.HTTP_200_OK,
+        )
