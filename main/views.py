@@ -296,3 +296,57 @@ class GroupViewSet(BaseViewSet):
             },
             status=status.HTTP_200_OK,
         )
+    
+    @action(detail=True, methods=["put"])
+    def pay_refund(self, request, pk=None):
+        try:
+           
+            contribution_id = request.data.get("contribution_id", None)
+            contribution = GroupContribution.objects.get(id=contribution_id)
+        
+            if contribution.contribution_type != "refund":
+                return Response({"detail": "This is not a refund contribution."}, status=status.HTTP_400_BAD_REQUEST)
+
+            
+            group = contribution.group
+            if request.user != group.admin:
+                return Response({"detail": "You don't have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+
+          
+            contribution.is_paid = True
+            contribution.save()
+
+            return Response(
+                {"detail": "Refund paid successfully!", "contribution": GroupContributionSerializer(contribution).data},
+                status=status.HTTP_200_OK,
+            )
+        except GroupContribution.DoesNotExist:
+            return Response({"detail": "Refund contribution not found."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+    @action(detail=True, methods=["put"])
+    def verify_refund(self, request, pk=None):
+        try:
+            contribution_id = request.data.get("contribution_id", None)
+            contribution = GroupContribution.objects.get(id=contribution_id)
+            if contribution.contribution_type != "refund":
+                return Response({"detail": "This is not a refund contribution."}, status=status.HTTP_400_BAD_REQUEST)
+
+            if request.user != contribution.member:
+                return Response({"detail": "You don't have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+
+            if not contribution.is_paid:
+                return Response({"detail": "Refund has not been paid yet by the admin."}, status=status.HTTP_400_BAD_REQUEST)
+
+            contribution.is_verified = True
+            contribution.save()
+
+            return Response(
+                {"detail": "Refund verified successfully!", "contribution": GroupContributionSerializer(contribution).data},
+                status=status.HTTP_200_OK,
+            )
+        except GroupContribution.DoesNotExist:
+            return Response({"detail": "Refund contribution not found."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
