@@ -7,11 +7,14 @@ from common.permissions import IsGroupAdmin, IsGroupMember
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework import status
+from rest_framework.viewsets import GenericViewSet
 from common.functions import serailizer_errors
 from rest_framework.exceptions import ValidationError,  APIException
 from django.db import transaction
 from decimal import Decimal
 from django.db.models import Sum
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+
 # Create your views here.
 
 import logging
@@ -45,6 +48,26 @@ class GroupViewSet(BaseViewSet):
     def perform_create(self, serializer):
         serializer.save(admin=self.request.user, created_by=self.request.user)
 
+
+    @extend_schema(
+          request={
+            'application/json':{
+                'type': 'object',
+                'properties': {
+                    'user_id': {'type': 'integer' },  
+         
+                },
+            }
+        },
+        responses={
+            200: {
+                'type': 'object',
+                'properties': {
+                    'detail': {'type': 'string', "example":"User xyz added to the group."},          
+                }
+            }
+        }
+    )  
     @action(detail=True, methods=['post'])
     def add_member(self, request, pk=None):
         group = self.get_object()
@@ -56,6 +79,26 @@ class GroupViewSet(BaseViewSet):
         except User.DoesNotExist:
             return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
+
+    @extend_schema(
+          request={
+            'application/json':{
+                'type': 'object',
+                'properties': {
+                    'user_id': {'type': 'integer' },  
+         
+                },
+            }
+        },
+        responses={
+            200: {
+                'type': 'object',
+                'properties': {
+                    'detail': {'type': 'string', "example":"User xyz remove from the group."},          
+                }
+            }
+        }
+    ) 
     @action(detail=True, methods=['post'])
     def remove_member(self, request, pk=None):
         group = self.get_object()
@@ -71,7 +114,19 @@ class GroupViewSet(BaseViewSet):
     
 
 
-
+    @extend_schema(
+          request={
+            'application/json':GroupExpenseSerializer
+        },
+        responses={
+            200: {
+                'type': 'object',
+                'properties': {
+                    'detail': {'type': 'string', "example":"Expense added"}
+                }
+            }
+        }
+    ) 
     @action(detail=True, methods=["post"] )
     def add_expense(self, request, pk=None):
         try:   
@@ -104,8 +159,26 @@ class GroupViewSet(BaseViewSet):
             raise APIException(detail=str(ex))
         
 
-
-    @action(detail=True, methods=["delete"])
+    @extend_schema(
+          request={
+            'application/json':{
+                'type': 'object',
+                'properties': {
+                    'expense_id': {'type': 'integer' },  
+         
+                },
+            }
+        },
+        responses={
+            200: {
+                'type': 'object',
+                'properties': {
+                    'detail': {'type': 'string', "example":"Expense deleted"}
+                }
+            }
+        }
+    ) 
+    @action(detail=True, methods=["post"])
     def delete_expense(self, request, pk=None):
         try:
             group = self.get_object()
@@ -128,7 +201,16 @@ class GroupViewSet(BaseViewSet):
     
 
    
-
+    @extend_schema( 
+        responses={
+            200: {
+                'type': 'object',
+                'properties': {
+                    'detail': {'type': 'string', "example":"Contribution for {group.name} is shared successfully"}
+                }
+            }
+        }
+    ) 
     @action(detail=True, methods=["post"])
     def share_contribution_amount(self, request, pk=None):
         group = self.get_object()
@@ -158,7 +240,26 @@ class GroupViewSet(BaseViewSet):
         serailizer = GroupContributionSerializer(contribution, many=True)
         return Response({"results":serailizer.data}, status=status.HTTP_200_OK)
     
-    @action(detail=True, methods=["put"])
+    @extend_schema(
+          request={
+            'application/json':{
+                'type': 'object',
+                'properties': {
+                    'contribution_id': {'type': 'integer' },  
+         
+                },
+            }
+        },
+        responses={
+            200: {
+                'type': 'object',
+                'properties': {
+                    'detail': {'type': 'string', "example":"Contribution mark paid successfully!"}
+                }
+            }
+        }
+    ) 
+    @action(detail=True, methods=["post"])
     def pay_contribution(self, request, pk=None):
         try:
             contribution_id = request.data.get("contribution_id", None)
@@ -175,7 +276,26 @@ class GroupViewSet(BaseViewSet):
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
-    
+    @extend_schema(
+          request={
+            'application/json':{
+                'type': 'object',
+                'properties': {
+                    'contribution_ids': 
+                          {'type': 'array','items': { 'type': 'integer','example': 1}, },  
+         
+                },
+            }
+        },
+        responses={
+            200: {
+                'type': 'object',
+                'properties': {
+                    'detail': {'type': 'string', "example":"Contributions verified successfully."}
+                }
+            }
+        }
+    ) 
     @action(detail=True, methods=["put"])
     def verify_contribution_pay(self, request, pk=None):
         group = self.get_object()
@@ -283,7 +403,25 @@ class GroupViewSet(BaseViewSet):
     
 
 
-    
+    @extend_schema(
+          request={
+            'application/json':{
+                'type': 'object',
+                'properties': {
+                    'contribution_id': {'type': 'integer' },  
+         
+                },
+            }
+        },
+        responses={
+            200: {
+                'type': 'object',
+                'properties': {
+                    'detail': {'type': 'string', "example":"Refund paid successfully!"}
+                }
+            }
+        }
+    ) 
     @action(detail=True, methods=["put"])
     def pay_refund(self, request, pk=None):
         try:
@@ -313,7 +451,25 @@ class GroupViewSet(BaseViewSet):
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
 
-
+    @extend_schema(
+          request={
+            'application/json':{
+                'type': 'object',
+                'properties': {
+                    'contribution_id': {'type': 'integer' },  
+         
+                },
+            }
+        },
+        responses={
+            200: {
+                'type': 'object',
+                'properties': {
+                    'detail': {'type': 'string', "example":"Refund verified successfully!"}
+                }
+            }
+        }
+    ) 
     @action(detail=True, methods=["put"])
     def verify_refund(self, request, pk=None):
         try:
@@ -342,7 +498,8 @@ class GroupViewSet(BaseViewSet):
 
 
 
-class GroupAnalysisViewSet(BaseViewSet):
+class GroupAnalysisViewSet(GenericViewSet):
+    
     def get_queryset(self):
         return []
 
@@ -370,18 +527,3 @@ class GroupAnalysisViewSet(BaseViewSet):
             return Response({"detail": "Group not found."}, status=status.HTTP_404_NOT_FOUND)
         
     
-    @action(detail=True, methods=["get"])
-    def refund_status(self, request, pk=None):
-        """
-        Get the status of refunds for the group.
-        """
-        try:
-            group = Group.objects.get(pk=pk)
-
-            refunds = group.contributions.filter(contribution_type="refund").values(
-                "member__first_name", "amount", "is_paid", "is_verified"
-            )
-
-            return Response(refunds, status=status.HTTP_200_OK)
-        except Group.DoesNotExist:
-            return Response({"detail": "Group not found."}, status=status.HTTP_404_NOT_FOUND)
