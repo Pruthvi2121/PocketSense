@@ -11,6 +11,7 @@ from common.functions import serailizer_errors
 from rest_framework.exceptions import ValidationError,  APIException
 from django.db import transaction
 from decimal import Decimal
+from django.db.models import Sum
 # Create your views here.
 
 import logging
@@ -312,7 +313,7 @@ class GroupViewSet(BaseViewSet):
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
 
-        
+
     @action(detail=True, methods=["put"])
     def verify_refund(self, request, pk=None):
         try:
@@ -338,3 +339,49 @@ class GroupViewSet(BaseViewSet):
             return Response({"detail": "Refund contribution not found."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class GroupAnalysisViewSet(BaseViewSet):
+    def get_queryset(self):
+        return []
+
+    @action(detail=True, methods=["get"])
+    def overview(self, request, pk=None):
+        """
+        Get an overview of the group's financial details.
+        """
+        try:
+            group = Group.objects.get(pk=pk)
+
+            total_expenses = group.expenses.aggregate(total=Sum('amount'))['total'] or 0
+            total_contributions = group.contributions.aggregate(total=Sum('amount'))['total'] or 0
+
+            data = {
+                "group_name": group.name,
+                "estimated_amount": group.estimated_amount,
+                "actual_amount": group.actual_amount,
+                "total_expenses": total_expenses,
+                "total_contributions": total_contributions,
+                "remaining_balance": group.estimated_amount - total_expenses,
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        except Group.DoesNotExist:
+            return Response({"detail": "Group not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+    
+    @action(detail=True, methods=["get"])
+    def refund_status(self, request, pk=None):
+        """
+        Get the status of refunds for the group.
+        """
+        try:
+            group = Group.objects.get(pk=pk)
+
+            refunds = group.contributions.filter(contribution_type="refund").values(
+                "member__first_name", "amount", "is_paid", "is_verified"
+            )
+
+            return Response(refunds, status=status.HTTP_200_OK)
+        except Group.DoesNotExist:
+            return Response({"detail": "Group not found."}, status=status.HTTP_404_NOT_FOUND)
