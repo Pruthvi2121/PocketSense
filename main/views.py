@@ -234,11 +234,6 @@ class GroupViewSet(BaseViewSet):
         group.save()
 
 
-        member_expenses = {
-        expense["created_by"]: expense["total"]
-        for expense in group.expenses.values("created_by").annotate(total=Sum("amount"))
-    }
-
         # need additional amount from members
         if total_expenses > group.estimated_amount:
             additional_amount = (total_expenses - group.estimated_amount) / len(members)
@@ -255,7 +250,6 @@ class GroupViewSet(BaseViewSet):
                     
                 additional_amount =( extra_amount + unpaid_contribution ) - member_total_expenses
 
-               
                
                 if additional_amount < 0:
                     # Create a refund contribution for the member
