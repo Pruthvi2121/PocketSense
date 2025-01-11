@@ -42,52 +42,6 @@ class Group(BaseModel):
     
   
 
-    def calculate_contributions(self):
-        """
-        Calculate contributions or refunds for each member, considering individual payments.
-        """
-        members_count = self.members.count()
-        if members_count == 0:
-            return None
-
-        # Fetch all expenses and calculate total spent by each member
-        total_group_expense = sum(expense.amount for expense in self.expenses.all())
-        member_expenses = {member: 0 for member in self.members.all()}
-
-        for expense in self.expenses.all():
-            member_expenses[expense.created_by] += expense.amount
-
-        # Calculate the share each member owes
-        per_member_share = total_group_expense / members_count
-
-        contributions = []
-        for member, spent in member_expenses.items():
-            if spent > per_member_share:
-                # Member has overpaid; calculate refund
-                refund_amount = spent - per_member_share
-                contributions.append({
-                    'member': member,
-                    'amount': refund_amount,
-                    'type': 'refund'
-                })
-            elif spent < per_member_share:
-                # Member owes money; calculate additional amount
-                additional_amount = per_member_share - spent
-                contributions.append({
-                    'member': member,
-                    'amount': additional_amount,
-                    'type': 'additional'
-                })
-            else:
-                # Member's payments match their share; no action needed
-                contributions.append({
-                    'member': member,
-                    'amount': 0,
-                    'type': 'settled'
-                })
-
-        return contributions
-
 class GroupExpense(BaseModel):
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="expenses")
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
